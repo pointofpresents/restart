@@ -1,4 +1,6 @@
 <?php
+use FreePBX\modules\Restart;
+
 /* $Id: */
 if (!defined('FREEPBX_IS_AUTH')) { die('No direct script access allowed'); }
 
@@ -13,7 +15,7 @@ switch ($action) {
 		$restarted = false;
 		if(is_array($restartlist) && sizeof($restartlist))  {
 			foreach($restartlist as $device)  {
-				restart_device($device);
+				Restart::restartDevice($device);
 			}
 			$restarted = true;
 		}
@@ -55,7 +57,7 @@ $txtinfo = isset($txtinfo)?$txtinfo:'<div class="well well-info">'._("Currently,
 															<?php
 															$selected = isset($selected)?$selected:array();
 															foreach ($device_list as $device) {
-																if($ua = get_device_useragent($device["id"]))  {
+																if($ua = Restart::getUserAgent($device["id"]))  {
 																	echo '<option value="'.$device["id"].'" ';
 																	if (array_search($device["id"], $selected) !== false) echo ' selected="selected" ';
 																	echo '>'.$device["id"].' - '.$device["description"].' - '.ucfirst($ua).' Device</option>';
