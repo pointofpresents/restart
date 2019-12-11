@@ -1,13 +1,13 @@
 <module>
-  <rawname>restart</rawname>
-  <repo>unsupported</repo>
-  <name>Bulk Phone Restart</name>
-  <version>13.0.7</version>
-	<publisher>Sangoma Technologies Corporation</publisher>
+	<rawname>restart</rawname>
+	<name>Bulk Phone Restart</name>
+	<version>15.0alpha1</version>
+	<publisher>RadiusOne</publisher>
 	<license>GPLv3+</license>
 	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
-  <category>Admin</category>
+	<category>Admin</category>
 	<changelog>
+		*15.0* Add scheduled restarts
 		*13.0.7* Fixing FREEPBX-18131 Removing reboot by force option from yealink while sending sip notify to yealink phone. 
 		*13.0.6* Change repo to unsupported
 		*13.0.5* FREEPBX-10708
@@ -15,8 +15,8 @@
 		*13.0.3* FREEPBX-9537 Bulk Phone Restart Error
 		*13.0.2* Version bump Beta
 		*13.0.1alpha1* Visuals
-    *12.0.1* Redo module_hook calls to use static obj
-  	*2.11.0.1* Add license info
+		*12.0.1* Redo module_hook calls to use static obj
+		*2.11.0.1* Add license info
 		*2.11.0.0* bump version
 		*2.10.0.4* fix/improve sip notify
 		*2.10.0.3* assotred bug fixes
@@ -32,17 +32,25 @@
 		*2.6.0.1* #3912
 		*2.6.0.0* Initial release
 	</changelog>
-  <depends>
-    <version>12.0.1rc16</version>
-  </depends>
-  <description>This module allows users to restart one or multiple phones that support being restarted via a SIP NOTIFY command through Asterisk's sip_notify.conf
+	<depends>
+		<version>15.0</version>
+	</depends>
+	<description>This module allows users to restart one or multiple phones that support being restarted via a SIP NOTIFY command through Asterisk's sip_notify.conf
 	</description>
-  <menuitems>
-    <restart>Phone Restart</restart>
-  </menuitems>
-  <location>release/2.11/restart-2.11.0.0.tgz</location>
-  <md5sum>560c129b3a7c73eed1fe0fb17efe5910</md5sum>
-  <supported>
-    <version>13.0</version>
-  </supported>
+	<menuitems>
+		<restart>Phone Restart</restart>
+	</menuitems>
+	<supported>
+		<version>15.0</version>
+	</supported>
+	<breaking>
+		<module>
+			<rawname>endpoint</rawname>
+			<type>conflict</type>
+		</module>
+		<module>
+			<rawname>endpointman</rawname>
+			<type>conflict</type>
+		</module>
+	</breaking>
 </module>
