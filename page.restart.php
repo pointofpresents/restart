@@ -26,7 +26,7 @@ if(isset($restarted))  {
 		$txtinfo = '<div class="well well-warning">'._("Warning: The restart mechanism behavior is vendor specific.  Some vendors only restart the phone if there is a change to the phone configuration or if an updated firmware is available via tftp/ftp/http"). "</div>";
 	}
 }
-$device_list = core_devices_list();
+$device_list = FreePBX::Core()->getAllDevicesByType();
 $device_list = is_array($device_list)?$device_list:array();
 $txtinfo = isset($txtinfo)?$txtinfo:'<div class="well well-info">'._("Currently, only Aastra, Snom, Polycom, Grandstream and Cisco devices are supported.").'</div>';
 ?>
@@ -55,10 +55,10 @@ $txtinfo = isset($txtinfo)?$txtinfo:'<div class="well well-info">'._("Currently,
 															<?php
 															$selected = isset($selected)?$selected:array();
 															foreach ($device_list as $device) {
-																if($ua = get_device_useragent($device[0]))  {
-																	echo '<option value="'.$device[0].'" ';
-																	if (array_search($device[0], $selected) !== false) echo ' selected="selected" ';
-																	echo '>'.$device[0].' - '.$device[1].' - '.ucfirst($ua).' Device</option>';
+																if($ua = get_device_useragent($device["id"]))  {
+																	echo '<option value="'.$device["id"].'" ';
+																	if (array_search($device["id"], $selected) !== false) echo ' selected="selected" ';
+																	echo '>'.$device["id"].' - '.$device["description"].' - '.ucfirst($ua).' Device</option>';
 																}
 															}
 															?>
