@@ -24,18 +24,13 @@ class Restart implements \BMO
 
     public function getActionBar($request)
     {
-        $buttons = array();
-        switch($request['display']) {
-            case 'restart':
-                $buttons = array(
-                    'submit' => array(
-                        'name' => 'submit',
-                        'id' => 'submit',
-                        'value' => _('Restart Phones')
-                    )
-                );
-            break;
-        }
+        $buttons = array(
+            'submit' => array(
+                'name' => 'submit',
+                'id' => 'submit',
+                'value' => _('Restart Phones')
+            )
+        );
         return $buttons;
     }
 
@@ -53,21 +48,21 @@ class Restart implements \BMO
     {
         $conf = array(
             "sip_notify_additional.conf" => array(
-                "aastra-check-cfg" => array("Event" => "check-sync"),
-                "aastra-xml" => array("Event" => "aastra-xml"),
-                "algo-check-cfg" => array("Event" => "check-sync"),
-                "audiocodes-check-cfg" => array("Event" => "check-sync"),
-                "cisco-check-cfg" => array("Event" => "check-sync"),
-                "cyberdata-check-cfg" => array("Event" => "check-sync"),
-                "grandstream-check-cfg" => array("Event" => "check-sync"),
-                "linksys-cold-restart" => array("Event" => "reboot_now"),
-                "linksys-warm-restart" => array("Event" => "restart_now"),
-                "panasonic-check-cfg" => array("Event" => "check-sync"),
-                "polycom-check-cfg" => array("Event" => "check-sync"),
-                "reboot-snom" => array("Event" => "reboot"),
-                "reboot-yealink" => array("Event" => "check-sync\;reboot=false"),
-                "sipura-check-cfg" => array("Event" => "resync"),
-                "spa-reboot" => array("Event" => "reboot"),
+                "aastra-check-cfg"       => array("Event" => "check-sync"),
+                "aastra-xml"             => array("Event" => "aastra-xml"),
+                "algo-check-cfg"         => array("Event" => "check-sync"),
+                "audiocodes-check-cfg"   => array("Event" => "check-sync"),
+                "cisco-check-cfg"        => array("Event" => "check-sync"),
+                "cyberdata-check-cfg"    => array("Event" => "check-sync"),
+                "grandstream-check-cfg"  => array("Event" => "check-sync"),
+                "linksys-cold-restart"   => array("Event" => "reboot_now"),
+                "linksys-warm-restart"   => array("Event" => "restart_now"),
+                "panasonic-check-cfg"    => array("Event" => "check-sync"),
+                "polycom-check-cfg"      => array("Event" => "check-sync"),
+                "reboot-snom"            => array("Event" => "reboot"),
+                "reboot-yealink"         => array("Event" => "check-sync\\;reboot=false"),
+                "sipura-check-cfg"       => array("Event" => "resync"),
+                "spa-reboot"             => array("Event" => "reboot"),
             )
         );
         return $conf;
@@ -87,12 +82,12 @@ class Restart implements \BMO
 
     public static function restartDevice($device)  {
         $messages = array(
-            "aastra" => "aastra-check-cfg",
-            "cisco" => "cisco-check-cfg",
+            "aastra"      => "aastra-check-cfg",
+            "cisco"       => "cisco-check-cfg",
             "grandstream" => "grandstream-check-cfg",
-            "polycom" => "polycom-check-cfg",
-            "snom" => "reboot-snom",
-            "yealink" => "reboot-yealink",
+            "polycom"     => "polycom-check-cfg",
+            "snom"        => "reboot-snom",
+            "yealink"     => "reboot-yealink",
         );
         $ua = self::getUserAgent($device);
         if ($ua) {

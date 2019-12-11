@@ -1,46 +1,48 @@
 <?php
 use FreePBX\modules\Restart;
 
-/* $Id: */
 if (!defined('FREEPBX_IS_AUTH')) { die('No direct script access allowed'); }
 
-//Both of these are used for switch on config.php
-$display = isset($_REQUEST['display'])?$_REQUEST['display']:'restart';
+$restartlist = isset($_REQUEST['restartlist'])?$_REQUEST['restartlist']:[];
 
-$action = isset($_REQUEST['action'])?$_REQUEST['action']:'';
-$restartlist = isset($_REQUEST['restartlist'])?$_REQUEST['restartlist']:'';
-
-switch ($action) {
-	case "restart":
-		$restarted = false;
-		if(is_array($restartlist) && sizeof($restartlist))  {
-			foreach($restartlist as $device)  {
-				Restart::restartDevice($device);
-			}
-			$restarted = true;
-		}
-		break;
+if (isset($_POST["action"]) && $_POST["action"] === "restart") {
+    $restarted = false;
+    foreach($restartlist as $device)  {
+        Restart::restartDevice($device);
+        $restarted = true;
+    }
 }
+
 if(isset($restarted))  {
-	if($restarted){
-		$txtinfo = '<div class="well well-info">'._("Restart requests sent!").'</div>';
-	}else{
-		$txtinfo = '<div class="well well-warning">'._("Warning: The restart mechanism behavior is vendor specific.  Some vendors only restart the phone if there is a change to the phone configuration or if an updated firmware is available via tftp/ftp/http"). "</div>";
-	}
+    if($restarted){
+        $txtinfo = sprintf(
+            '<div class="well well-info">%s</div>',
+            htmlspecialchars(_("Restart requests sent!"))
+        );
+    } else {
+        $txtinfo = sprintf(
+            '<div class="well well-warning">%s</div>',
+            htmlspecialchars(_("Warning: The restart mechanism behavior is vendor specific.  Some vendors only restart the phone if there is a change to the phone configuration or if an updated firmware is available via tftp/ftp/http"))
+        );
+    }
+} else {
+    $txtinfo = sprintf(
+        '<div class="well well-info">%s</div>',
+        htmlspecialchars(_("Currently, only Aastra, Snom, Polycom, Grandstream and Cisco devices are supported."))
+    );
 }
 $device_list = FreePBX::Core()->getAllDevicesByType();
-$device_list = is_array($device_list)?$device_list:array();
-$txtinfo = isset($txtinfo)?$txtinfo:'<div class="well well-info">'._("Currently, only Aastra, Snom, Polycom, Grandstream and Cisco devices are supported.").'</div>';
+
 ?>
 <div class="container-fluid">
-	<h1><?php echo _('Restart Phones')?></h1>
-	<?php echo $txtinfo ?>
+	<h1><?= htmlspecialchars(_('Restart Phones')) ?></h1>
+	<?= $txtinfo ?>
 	<div class = "display full-border">
 		<div class="row">
 			<div class="col-sm-12">
 				<div class="fpbx-container">
 					<div class="display full-border">
-						<form name='restart' class="fpbx-submit" action='?display=restart&amp;action=restart' method='post'>
+						<form class="fpbx-submit" action="?display=restart&amp;action=restart" method="post">
 							<!--Device List-->
 							<div class="element-container">
 								<div class="row">
@@ -48,25 +50,22 @@ $txtinfo = isset($txtinfo)?$txtinfo:'<div class="well well-info">'._("Currently,
 										<div class="row">
 											<div class="form-group">
 												<div class="col-md-3">
-													<label class="control-label" for="xtnlist"><?php echo _("Device List") ?></label>
+													<label class="control-label" for="xtnlist"><?= htmlspecialchars(_("Device List")) ?></label>
 													<i class="fa fa-question-circle fpbx-help-icon" data-for="xtnlist"></i>
 												</div>
 												<div class="col-md-9">
 													<div class="input-group">
 														<select class="form-control" id="xtnlist" multiple="multiple" name="restartlist[]">
-															<?php
-															$selected = isset($selected)?$selected:array();
-															foreach ($device_list as $device) {
-																if($ua = Restart::getUserAgent($device["id"]))  {
-																	echo '<option value="'.$device["id"].'" ';
-																	if (array_search($device["id"], $selected) !== false) echo ' selected="selected" ';
-																	echo '>'.$device["id"].' - '.$device["description"].' - '.ucfirst($ua).' Device</option>';
-																}
-															}
-															?>
+<?php foreach ($device_list as $device): ?>
+    <?php if ($ua = ucfirst(Restart::getUserAgent($device["id"]))): ?>
+															<option value="<?= htmlspecialchars($device["id"]) ?>">
+																<?= htmlspecialchars("$device[id] - $device[description] - $ua Device") ?>
+															</option>
+	<?php endif ?>
+<?php endforeach ?>
 														</select>
-														<span class="input-group-addon" id="deviceaddon">
-															<input type="button" name="Button" value="<?php echo _('SELECT ALL'); ?>" onclick="selectAll('xtnlist',true)" />
+														<span class="input-group-addon">
+															<button class="btn" id="selectall"><?= htmlspecialchars(_('SELECT ALL')) ?></button>
 														</span>
 													</div>
 												</div>
@@ -76,16 +75,13 @@ $txtinfo = isset($txtinfo)?$txtinfo:'<div class="well well-info">'._("Currently,
 								</div>
 								<div class="row">
 									<div class="col-md-12">
-										<span id="xtnlist-help" class="help-block fpbx-help-block"><?php echo _("Select Device(s) to restart.  Currently, only Aastra, Snom, Polycom, Grandstream and Cisco devices are supported.  All other devices will not show up in this list.  Click the \"Select All\" button to restart all supported devices.")?></span>
+										<span id="xtnlist-help" class="help-block fpbx-help-block">
+											<?= htmlspecialchars(_("Select Device(s) to restart.  Currently, only Aastra, Snom, Polycom, Grandstream and Cisco devices are supported.  All other devices will not show up in this list.  Click the \"Select All\" button to restart all supported devices.")) ?>
+										</span>
 									</div>
 								</div>
 							</div>
 							<!--END Device List-->
-							<?php
-										// implementation of module hook
-										$module_hook = moduleHook::create();
-										echo $module_hook->hookHtml;
-							?>
 						</form>
 					</div>
 				</div>
@@ -94,20 +90,8 @@ $txtinfo = isset($txtinfo)?$txtinfo:'<div class="well well-info">'._("Currently,
 	</div>
 </div>
 
-<script language="javascript">
-	<!-- hide script from older browsers
-
-	function selectAll(selectBox,selectAll) {
-		// have we been passed an ID
-		if (typeof selectBox == "string") {
-			selectBox = document.getElementById(selectBox);
-		}
-		// is the select box a multiple select box?
-		if (selectBox.type == "select-multiple") {
-			for (var i = 0; i < selectBox.options.length; i++) {
-				selectBox.options[i].selected = selectAll;
-			}
-		}
-	}
-	// end of hiding script -->
-	</script>
+<script>
+	$("#selectall").on("click", function() {
+		$("#xtnlist option").attr("selected", true);
+	});
+</script>
