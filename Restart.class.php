@@ -89,6 +89,49 @@ class Restart extends Helper implements BMO
         $this->FreePBX->WriteConfig($config);
     }
 
+    public function showPage()
+    {
+        $txtinfo = sprintf(
+            '<div class="well well-info">%s</div>',
+            htmlspecialchars(_("Currently, only Aastra, Snom, Polycom, Grandstream and Cisco devices are supported."))
+        );
+
+        if (isset($_POST["restartlist"]) && is_array($_POST["restartlist"])) {
+            // when would this be displayed, and why???
+            $txtinfo = sprintf(
+                '<div class="well well-warning">%s</div>',
+                htmlspecialchars(_("Warning: The restart mechanism behavior is vendor specific.  Some vendors only restart the phone if there is a change to the phone configuration or if an updated firmware is available via tftp/ftp/http"))
+            );
+            $restartlist = $_POST['restartlist'];
+            if (empty($_POST["schedtime"])) {
+                foreach($restartlist as $device) {
+                    Restart::restartDevice($device);
+                    $txtinfo = sprintf(
+                        '<div class="well well-info">%s</div>',
+                        htmlspecialchars(_("Restart requests sent!"))
+                    );
+                }
+            } else {
+                $schedtime = $_POST["schedtime"];
+                FreePBX::Restart()->scheduleRestart($restartlist, $schedtime);
+                $txtinfo = sprintf(
+                    '<div class="well well-info">%s</div>',
+                    htmlspecialchars(_("Restart requests scheduled!"))
+                );
+            }
+        }
+
+        $device_list = [];
+        foreach (FreePBX::Core()->getAllDevicesByType() as $device) {
+            $ua = ucfirst(self::getUserAgent($device["id"]));
+            if ($ua) {
+                $device["ua"] = $ua;
+                $device_list[] = $device;
+            }
+        }
+        return load_view(__DIR__ . "/views/page.restart.php", compact("txtinfo", "device_list"));
+    }
+
     public function runJobs(OutputInterface $output, $jobname = "")
     {
         if ($jobname === "") {
