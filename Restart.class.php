@@ -4,6 +4,7 @@ namespace FreePBX\modules;
 use \BMO;
 use \FreePBX;
 use \DateTime;
+use \Exception;
 use \FreePBX\FreePBX_Helpers as Helper;
 use \Symfony\Component\Console\Output\OutputInterface;
 use \FreePBX\modules\Restart\Job;
@@ -88,19 +89,29 @@ class Restart extends Helper implements BMO
         $this->FreePBX->WriteConfig($config);
     }
 
-    public function runJobs(OutputInterface $output)
+    public function runJobs(OutputInterface $output, $jobname = "")
     {
-        $time = (new DateTime)->format("Hi");
-        $jobname = "scheduled_reboot_$time";
+        if ($jobname === "") {
+            $time = (new DateTime)->format("Hi");
+            $jobname = "scheduled_reboot_$time";
+        }
         if ($devicelist = $this->getConfig($jobname)) {
             foreach ($devicelist as $device) {
                 $output->writeln(sprintf(_("Restart request sent for %s"), $device));
                 self::restartDevice($device);
             }
-            $this->delConfig($jobname);
         }
-        $job = FreePBX::Job();
-        $job->remove(self::MODULE_NAME, $jobname);
+        $this->delConfig($jobname);
+        try {
+            $job = FreePBX::Job();
+            $job->remove(self::MODULE_NAME, $jobname);
+        } catch (Exception $e) {
+            // assume exception means no Job class
+            $conf = FreePBX::Config();
+            $user = $conf->get("AMPASTERISKWEBUSER");
+            $cron = FreePBX::Cron($user);
+            $cron->removeAll($jobname);
+        }
     }
 
     public static function restartDevice($device)
@@ -116,7 +127,9 @@ class Restart extends Helper implements BMO
         $ua = self::getUserAgent($device);
         if ($ua) {
             self::sipNotify($messages[$ua], $device);
+            return true;
         }
+        return false;
     }
 
     public function scheduleRestart($device, $schedtime)
@@ -124,14 +137,28 @@ class Restart extends Helper implements BMO
         list($hour, $min) = explode(":", $schedtime);
         $jobname = "scheduled_reboot_$hour$min";
         $schedule = "$min $hour * * *";
-        $job = FreePBX::Job();
-        $job->remove(self::MODULE_NAME, $jobname);
-        $job->addClass(
-            self::MODULE_NAME,
-            $jobname,
-            Job::class,
-            $schedule
-        );
+        try {
+            $job = FreePBX::Job();
+            $job->remove(self::MODULE_NAME, $jobname);
+            $job->addClass(
+                self::MODULE_NAME,
+                $jobname,
+                Job::class,
+                $schedule
+            );
+        } catch (Exception $e) {
+            // assume exception means no Job class
+            $conf = FreePBX::Config();
+            $user = $conf->get("AMPASTERISKWEBUSER");
+            $bindir = $conf->get("AMPSBIN");
+            $cron = FreePBX::Cron($user);
+            $cron->removeAll($jobname);
+            $cron->add(array(
+                "command" => "$bindir/fwconsole phonerestart --jobname=$jobname",
+                "minute" => $min,
+                "hour" => $hour,
+            ));
+        }
         $this->setConfig($jobname, $device);
     }
 
