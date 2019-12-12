@@ -124,7 +124,15 @@ $device_list = FreePBX::Core()->getAllDevicesByType();
 													<i class="fa fa-question-circle fpbx-help-icon" data-for="schedtime"></i>
 												</div>
 												<div class="col-md-9">
-													<input type="time" name="schedtime" id="schedtime" value="00:00" disabled="disabled"/>
+													<div class="input-group">
+														<input type="time" class="form-control" name="schedtime" id="schedtime" value="00:00" disabled="disabled"/>
+														<div class="input-group-addon">
+															<?= htmlspecialchars(_("Server time:")) ?>
+															<span id="idTime" data-time="<?= time() ?>" data-zone="<?= htmlspecialchars(date_default_timezone_get()) ?>">
+																<?= htmlspecialchars((new \DateTime)->format("H:i:s T")) ?>
+															</span>
+														</div>
+													</div>
 												</div>
 											</div>
 										</div>
@@ -146,12 +154,3 @@ $device_list = FreePBX::Core()->getAllDevicesByType();
 		</div>
 	</div>
 </div>
-
-<script>
-	$("#selectall").on("click", function() {
-		$("#xtnlist option").attr("selected", true);
-	});
-    $("input[name=enable_schedule]").on("change", function() {
-        $("#schedtime").prop("disabled", !Boolean(parseInt(this.value)));
-    })
-</script>
