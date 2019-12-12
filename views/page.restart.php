@@ -6,8 +6,30 @@
 		<div class="row">
 			<div class="col-sm-12">
 				<div class="fpbx-container">
-					<div class="display full-border">
+					<div class="display no-border">
 						<form class="fpbx-submit" action="?display=restart" method="post">
+
+							<div class="nav-container">
+								<div class="scroller scroller-left"></div>
+								<div class="scroller scroller-right"></div>
+								<div class="wrapper">
+									<ul class="nav nav-tabs list" role="tablist">
+										<li role="presentation" data-name="restartform" class="active">
+											<a href="#restartform" aria-controls="restartform" role="tab" data-toggle="tab">
+												<?= htmlspecialchars(_("Reboot Devices")) ?>
+											</a>
+										</li>
+										<li role="presentation" data-name="restartlist">
+											<a href="#restartlist" aria-controls="restartlist" role="tab" data-toggle="tab">
+												<?= htmlspecialchars(_("Pending Reboots")) ?>
+											</a>
+										</li>
+									</ul>
+								</div>
+							</div>
+
+							<div class="tab-content display">
+								<div role="tabpanel" id="restartform" class="tab-pane active">
 							<!--Device List-->
 							<div class="element-container">
 								<div class="row">
@@ -108,6 +130,40 @@
 								</div>
 							</div>
 							<!--END Schedule Time-->
+								</div>
+								<div role="tabpanel" id="restartlist" class="tab-pane">
+									<table id="pending_restart_grid"
+										data-url="ajax.php?module=restart&amp;command=listJobs"
+										data-cache="false"
+										data-cookie="true"
+										data-cookie-id-table="pending_restart_grid"
+										data-maintain-selected="true"
+										data-show-columns="true"
+										data-show-toggle="true"
+										data-toggle="table"
+										data-pagination="true"
+										data-search="true"
+										class="table table-striped"
+									>
+										<thead>
+											<tr>
+												<th data-sortable="true" data-field="jobname">
+													<?= htmlspecialchars(_("Job Name")) ?>
+												</th>
+												<th data-sortable="true" data-field="time">
+													<?= htmlspecialchars(_("Time")) ?>
+												</th>
+												<th data-sortable="true" data-field="devices">
+													<?= htmlspecialchars(_("Devices")) ?>
+												</th>
+												<th data-formatter="Restart.actionLinkFormatter">
+													<?= htmlspecialchars(_("Actions")) ?>
+												</th>
+											</tr>
+										</thead>
+									</table>
+								</div>
+							</div>
 						</form>
 					</div>
 				</div>
