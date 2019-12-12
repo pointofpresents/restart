@@ -3,34 +3,36 @@ use FreePBX\modules\Restart;
 
 if (!defined('FREEPBX_IS_AUTH')) { die('No direct script access allowed'); }
 
-$restartlist = isset($_REQUEST['restartlist'])?$_REQUEST['restartlist']:[];
+$txtinfo = sprintf(
+    '<div class="well well-info">%s</div>',
+    htmlspecialchars(_("Currently, only Aastra, Snom, Polycom, Grandstream and Cisco devices are supported."))
+);
 
-if (isset($_POST["action"]) && $_POST["action"] === "restart") {
-    $restarted = false;
-    foreach($restartlist as $device)  {
-        Restart::restartDevice($device);
-        $restarted = true;
-    }
-}
-
-if(isset($restarted))  {
-    if($restarted){
+if (isset($_POST["restartlist"]) && is_array($_POST["restartlist"])) {
+    // when would this be displayed, and why???
+    $txtinfo = sprintf(
+        '<div class="well well-warning">%s</div>',
+        htmlspecialchars(_("Warning: The restart mechanism behavior is vendor specific.  Some vendors only restart the phone if there is a change to the phone configuration or if an updated firmware is available via tftp/ftp/http"))
+    );
+    $restartlist = $_POST['restartlist'];
+    if (empty($_POST["schedtime"])) {
+        foreach($restartlist as $device) {
+            Restart::restartDevice($device);
+            $txtinfo = sprintf(
+                '<div class="well well-info">%s</div>',
+                htmlspecialchars(_("Restart requests sent!"))
+            );
+        }
+    } else {
+        $schedtime = $_POST["schedtime"];
+        FreePBX::Restart()->scheduleRestart($restartlist, $schedtime);
         $txtinfo = sprintf(
             '<div class="well well-info">%s</div>',
-            htmlspecialchars(_("Restart requests sent!"))
-        );
-    } else {
-        $txtinfo = sprintf(
-            '<div class="well well-warning">%s</div>',
-            htmlspecialchars(_("Warning: The restart mechanism behavior is vendor specific.  Some vendors only restart the phone if there is a change to the phone configuration or if an updated firmware is available via tftp/ftp/http"))
+            htmlspecialchars(_("Restart requests scheduled!"))
         );
     }
-} else {
-    $txtinfo = sprintf(
-        '<div class="well well-info">%s</div>',
-        htmlspecialchars(_("Currently, only Aastra, Snom, Polycom, Grandstream and Cisco devices are supported."))
-    );
 }
+
 $device_list = FreePBX::Core()->getAllDevicesByType();
 
 ?>
@@ -42,7 +44,7 @@ $device_list = FreePBX::Core()->getAllDevicesByType();
 			<div class="col-sm-12">
 				<div class="fpbx-container">
 					<div class="display full-border">
-						<form class="fpbx-submit" action="?display=restart&amp;action=restart" method="post">
+						<form class="fpbx-submit" action="?display=restart" method="post">
 							<!--Device List-->
 							<div class="element-container">
 								<div class="row">
@@ -82,6 +84,61 @@ $device_list = FreePBX::Core()->getAllDevicesByType();
 								</div>
 							</div>
 							<!--END Device List-->
+							<!--Schedule Time-->
+							<div class="element-container">
+								<div class="row">
+									<div class="col-md-12">
+										<div class="row">
+											<div class="form-group">
+												<div class="col-md-3">
+													<label class="control-label" for="enable_schedule_n"><?= htmlspecialchars(_("Scheduled Reboot")) ?></label>
+													<i class="fa fa-question-circle fpbx-help-icon" data-for="schedtime"></i>
+												</div>
+												<div class="col-md-9 radioset">
+													<input type="radio" id="enable_schedule_n" name="enable_schedule" value="0" checked="checked"/>
+													<label for="enable_schedule_n"><?= htmlspecialchars(_("Now")) ?></label>
+													<input type="radio" id="enable_schedule_y" name="enable_schedule" value="1"/>
+													<label for="enable_schedule_y"><?= htmlspecialchars(_("Later")) ?></label>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-md-12">
+										<span id="enable_schedule-help" class="help-block fpbx-help-block">
+											<?= htmlspecialchars(_("You can reboot the devices now, or at a scheduled time in the next 24 hours.")) ?>
+										</span>
+									</div>
+								</div>
+							</div>
+							<!--END Schedule Time-->
+							<!--Schedule Time-->
+							<div class="element-container">
+								<div class="row">
+									<div class="col-md-12">
+										<div class="row">
+											<div class="form-group">
+												<div class="col-md-3">
+													<label class="control-label" for="schedtime"><?= htmlspecialchars(_("Reboot Time")) ?></label>
+													<i class="fa fa-question-circle fpbx-help-icon" data-for="schedtime"></i>
+												</div>
+												<div class="col-md-9">
+													<input type="time" name="schedtime" id="schedtime" value="00:00" disabled="disabled"/>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-md-12">
+										<span id="schedtime-help" class="help-block fpbx-help-block">
+											<?= htmlspecialchars(_("Select the time you wish the device(s) to reboot.")) ?>
+										</span>
+									</div>
+								</div>
+							</div>
+							<!--END Schedule Time-->
 						</form>
 					</div>
 				</div>
@@ -94,4 +151,7 @@ $device_list = FreePBX::Core()->getAllDevicesByType();
 	$("#selectall").on("click", function() {
 		$("#xtnlist option").attr("selected", true);
 	});
+    $("input[name=enable_schedule]").on("change", function() {
+        $("#schedtime").prop("disabled", !Boolean(parseInt(this.value)));
+    })
 </script>

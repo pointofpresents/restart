@@ -1,8 +1,16 @@
 <?php
 namespace FreePBX\modules;
 
-class Restart implements \BMO
+use \BMO;
+use \FreePBX;
+use \DateTime;
+use \FreePBX\FreePBX_Helpers as Helper;
+use \Symfony\Component\Console\Output\OutputInterface;
+use \FreePBX\modules\Restart\Job;
+
+class Restart extends Helper implements BMO
 {
+    const MODULE_NAME = "restart";
 
     public function __construct($freepbx = null)
     {
@@ -80,7 +88,23 @@ class Restart implements \BMO
         $this->FreePBX->WriteConfig($config);
     }
 
-    public static function restartDevice($device)  {
+    public function runJobs(OutputInterface $output)
+    {
+        $time = (new DateTime)->format("Hi");
+        $jobname = "scheduled_reboot_$time";
+        if ($devicelist = $this->getConfig($jobname)) {
+            foreach ($devicelist as $device) {
+                $output->writeln(sprintf(_("Restart request sent for %s"), $device));
+                self::restartDevice($device);
+            }
+            $this->delConfig($jobname);
+        }
+        $job = FreePBX::Job();
+        $job->remove(self::MODULE_NAME, $jobname);
+    }
+
+    public static function restartDevice($device)
+    {
         $messages = array(
             "aastra"      => "aastra-check-cfg",
             "cisco"       => "cisco-check-cfg",
@@ -95,9 +119,25 @@ class Restart implements \BMO
         }
     }
 
+    public function scheduleRestart($device, $schedtime)
+    {
+        list($hour, $min) = explode(":", $schedtime);
+        $jobname = "scheduled_reboot_$hour$min";
+        $schedule = "$min $hour * * *";
+        $job = FreePBX::Job();
+        $job->remove(self::MODULE_NAME, $jobname);
+        $job->addClass(
+            self::MODULE_NAME,
+            $jobname,
+            Job::class,
+            $schedule
+        );
+        $this->setConfig($jobname, $device);
+    }
+
     public static function getUserAgent($device)
     {
-        $astman = \FreePBX::astman();
+        $astman = FreePBX::astman();
         $command = sprintf("sip show peer %s", $device);
         $response = $astman->Command($command);
         $response = implode("\n", $response);
@@ -112,7 +152,7 @@ class Restart implements \BMO
 
     private static function sipNotify($event, $device)
     {
-        $astman = \FreePBX::astman();
+        $astman = FreePBX::astman();
         $command = sprintf("sip notify %s %s", $event, $device);
         $res = $astman->Command($command);
     }
