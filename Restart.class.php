@@ -99,7 +99,7 @@ class Restart extends Helper implements BMO
      */
     public function ajaxRequest($command, &$setting)
     {
-        return $command === "listJobs";
+        return in_array($command, array("listJobs", "deleteJob"));
     }
 
     /**
@@ -118,7 +118,7 @@ class Restart extends Helper implements BMO
                 $job = FreePBX::Job();
                 $jobs = array_filter(
                     $job->getAll(),
-                    function($v) { return $v["class"] === self::class; }
+                    function($v) { return $v["modulename"] === self::MODULE_NAME; }
                 );
                 foreach ($jobs as $job) {
                     $sched = explode(" ", $job["schedule"]);
@@ -144,7 +144,10 @@ class Restart extends Helper implements BMO
                     $cron = explode(" ", $job);
                     $time = "$cron[1]:$cron[0]";
                     $jobname = str_replace("--jobname=", "", $cron[7]);
-                    $devices = implode(", ", $this->getConfig($jobname));
+                    $devices = _("None (invalid entry)");
+                    if ($devices = $this->getConfig($jobname)) {
+                        $devices = implode(", ", $devices);
+                    }
                     $return[] = array(
                         "jobname" => $jobname,
                         "time" => $time,
@@ -153,6 +156,20 @@ class Restart extends Helper implements BMO
                 }
             }
             return $return;
+        } elseif ($command === "deleteJob") {
+            $jobname = $_GET["itemid"];
+            $this->delConfig($jobname);
+            try {
+                $job = FreePBX::Job();
+                $result = $job->remove(self::MODULE_NAME, $jobname);
+            } catch (Exception $e) {
+                // assume exception means no Job class
+                $conf = FreePBX::Config();
+                $user = $conf->get("AMPASTERISKWEBUSER");
+                $cron = FreePBX::Cron($user);
+                $result = $cron->removeAll("--jobname=$jobname");
+            }
+            return $result;
         }
         return ["status"=>false, "message"=>_("Unknown command")];
     }
