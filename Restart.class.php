@@ -89,6 +89,74 @@ class Restart extends Helper implements BMO
         $this->FreePBX->WriteConfig($config);
     }
 
+    /**
+     * Ajax request check; confirm command is okay and optionally pass some settings
+     *
+     * @see \FreePBX\Ajax::doRequest()
+     * @param string $command The command name
+     * @param string $setting Settings to return back
+     * @return boolean
+     */
+    public function ajaxRequest($command, &$setting)
+    {
+        return $command === "listJobs";
+    }
+
+    /**
+     * Handle the ajax request, passed in $_REQUEST["command"]
+     *
+     * @see \FreePBX\Ajax::doRequest()
+     * @return mixed The result of the command
+     */
+    public function ajaxHandler()
+    {
+        $request = $_REQUEST;
+        $command = isset($request["command"]) ? $request["command"] : "";
+        if ($command === "listJobs") {
+            $return = [];
+            try {
+                $job = FreePBX::Job();
+                $jobs = array_filter(
+                    $job->getAll(),
+                    function($v) { return $v["class"] === self::class; }
+                );
+                foreach ($jobs as $job) {
+                    $sched = explode(" ", $job["schedule"]);
+                    $time = "$sched[1]:$sched[0]";
+                    $jobname = $job["jobname"];
+                    $devices = implode(", ", $this->getConfig($jobname));
+                    $return[] = array(
+                        "jobname" => $jobname,
+                        "time" => $time,
+                        "devices" => $devices,
+                    );
+                }
+            } catch (Exception $e) {
+                // assume exception means no Job class
+                $conf = FreePBX::Config();
+                $user = $conf->get("AMPASTERISKWEBUSER");
+                $cron = FreePBX::Cron($user);
+                $jobs = array_filter(
+                    $cron->getAll(),
+                    function($v) { return strpos($v, "scheduled_reboot_") !== false; }
+                );
+                foreach ($jobs as $job) {
+                    $cron = explode(" ", $job);
+                    $time = "$cron[1]:$cron[0]";
+                    $jobname = str_replace("--jobname=", "", $cron[7]);
+                    $devices = implode(", ", $this->getConfig($jobname));
+                    $return[] = array(
+                        "jobname" => $jobname,
+                        "time" => $time,
+                        "devices" => $devices,
+                    );
+                }
+            }
+            return $return;
+        }
+        return ["status"=>false, "message"=>_("Unknown command")];
+    }
+
     public function showPage()
     {
         $txtinfo = sprintf(
