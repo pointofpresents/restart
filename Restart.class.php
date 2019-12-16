@@ -148,10 +148,9 @@ class Restart extends Helper implements BMO
                     $cron = explode(" ", $job);
                     $time = "$cron[1]:$cron[0]";
                     $jobname = str_replace("--jobname=", "", $cron[7]);
+                    $devices = _("None (invalid entry)");
                     if ($devices = $this->getConfig($jobname)) {
                         $devices = implode(", ", $devices);
-                    } else {
-                        $devices = _("None (invalid entry)");
                     }
                     $return[] = array(
                         "jobname" => $jobname,
