@@ -50,7 +50,7 @@
 <?php endforeach ?>
 																</select>
 																<span class="input-group-addon">
-																	<button class="btn" id="selectall"><?= htmlspecialchars(_("SELECT ALL")) ?></button>
+																	<button type="button" class="btn" id="selectall"><?= htmlspecialchars(_("SELECT ALL")) ?></button>
 																</span>
 															</div>
 														</div>
