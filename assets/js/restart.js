@@ -14,7 +14,7 @@ $("#selectall").on("click", function() {
 });
 
 $("input[name=enable_schedule]").on("change", function() {
-    $("#schedtime").prop("disabled", !Boolean(parseInt(this.value)));
+    $(".scheduler").prop("disabled", !Boolean(parseInt(this.value)));
     $("#schedtime:enabled").focus();
 });
 
