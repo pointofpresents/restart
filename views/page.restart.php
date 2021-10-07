@@ -42,7 +42,7 @@
 														</div>
 														<div class="col-md-9">
 															<div class="input-group">
-																<select class="form-control" id="xtnlist" multiple="multiple" name="restartlist[]" size="8">
+																<select class="form-control" id="xtnlist" multiple="multiple" name="restartlist[]" size="8" required="required">
 <?php foreach ($device_list as $device): ?>
 																	<option value="<?= htmlspecialchars($device["id"]) ?>">
 																		<?= htmlspecialchars("$device[id] - $device[description] - $device[ua] Device") ?>
@@ -108,7 +108,7 @@
 														</div>
 														<div class="col-md-9">
 															<div class="input-group">
-																<input type="time" class="form-control" name="schedtime" id="schedtime" value="00:00" disabled="disabled"/>
+																<input type="time" class="form-control scheduler" name="schedtime" id="schedtime" value="00:00" disabled="disabled"/>
 																<div class="input-group-addon">
 																	<?= htmlspecialchars(_("Server time:")) ?>
 																	<span id="idTime" data-time="<?= time() ?>" data-zone="<?= htmlspecialchars(date_default_timezone_get()) ?>">
@@ -130,6 +130,134 @@
 										</div>
 									</div>
 									<!--END Schedule Time-->
+									<!--Schedule Month-->
+									<div class="element-container">
+										<div class="row">
+											<div class="col-md-12">
+												<div class="row">
+													<div class="form-group">
+														<div class="col-md-3">
+															<label class="control-label" for="schedmonth"><?= htmlspecialchars(_("Reboot Month")) ?></label>
+															<i class="fa fa-question-circle fpbx-help-icon" data-for="schedmonth"></i>
+														</div>
+														<div class="col-md-9">
+															<select class="form-control scheduler" name="schedmonth" id="schedmonth" disabled="disabled">
+																<option selected="selected">*</option>
+																<option value="1"><?= htmlspecialchars(_("January")) ?></option>
+																<option value="2"><?= htmlspecialchars(_("February")) ?></option>
+																<option value="3"><?= htmlspecialchars(_("March")) ?></option>
+																<option value="4"><?= htmlspecialchars(_("April")) ?></option>
+																<option value="5"><?= htmlspecialchars(_("May")) ?></option>
+																<option value="6"><?= htmlspecialchars(_("June")) ?></option>
+																<option value="7"><?= htmlspecialchars(_("July")) ?></option>
+																<option value="8"><?= htmlspecialchars(_("August")) ?></option>
+																<option value="9"><?= htmlspecialchars(_("September")) ?></option>
+																<option value="10"><?= htmlspecialchars(_("October")) ?></option>
+																<option value="11"><?= htmlspecialchars(_("November")) ?></option>
+																<option value="12"><?= htmlspecialchars(_("December")) ?></option>
+															</select>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+										<div class="row">
+											<div class="col-md-12">
+												<span id="schedmonth-help" class="help-block fpbx-help-block">
+													<?= htmlspecialchars(_("Select the month you wish the device(s) to reboot. If set to *, the schedule will ignore the month. For recurring reboots, this means the phone will reboot every month on the specified day at the specified time.")) ?>
+												</span>
+											</div>
+										</div>
+									</div>
+									<!--END Schedule Month-->
+									<!--Schedule Day-->
+									<div class="element-container">
+										<div class="row">
+											<div class="col-md-12">
+												<div class="row">
+													<div class="form-group">
+														<div class="col-md-3">
+															<label class="control-label" for="schedday"><?= htmlspecialchars(_("Reboot Day")) ?></label>
+															<i class="fa fa-question-circle fpbx-help-icon" data-for="schedday"></i>
+														</div>
+														<div class="col-md-9">
+															<select class="form-control scheduler" name="schedday" id="schedday" disabled="disabled">
+																<option selected="selected">*</option>
+																<option>1</option>
+																<option>2</option>
+																<option>3</option>
+																<option>4</option>
+																<option>5</option>
+																<option>6</option>
+																<option>7</option>
+																<option>8</option>
+																<option>9</option>
+																<option>10</option>
+																<option>11</option>
+																<option>12</option>
+																<option>13</option>
+																<option>14</option>
+																<option>15</option>
+																<option>16</option>
+																<option>17</option>
+																<option>18</option>
+																<option>19</option>
+																<option>20</option>
+																<option>21</option>
+																<option>22</option>
+																<option>23</option>
+																<option>24</option>
+																<option>25</option>
+																<option>26</option>
+																<option>27</option>
+																<option>28</option>
+																<option>29</option>
+																<option>30</option>
+																<option>31</option>
+															</select>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+										<div class="row">
+											<div class="col-md-12">
+												<span id="schedday-help" class="help-block fpbx-help-block">
+													<?= htmlspecialchars(_("Select the day you wish the device(s) to reboot. If set to *, the schedule will ignore the day. For recurring reboots, this means the phone will reboot every day at the specified time.")) ?>
+												</span>
+											</div>
+										</div>
+									</div>
+									<!--END Schedule Day-->
+									<!--Schedule Recurring-->
+									<div class="element-container">
+										<div class="row">
+											<div class="col-md-12">
+												<div class="row">
+													<div class="form-group">
+														<div class="col-md-3">
+															<label class="control-label" for="schedrecurring"><?= htmlspecialchars(_("Recurring Reboot?")) ?></label>
+															<i class="fa fa-question-circle fpbx-help-icon" data-for="schedrecurring"></i>
+														</div>
+														<div class="col-md-9 radioset">
+															<input type="radio" class="scheduler" name="schedrecurring" id="schedrecurring_yes" value="yes" disabled="disabled"/>
+															<label for="schedrecurring_yes"><?= htmlspecialchars(_("Yes")) ?></label>
+															<input type="radio" class="scheduler" name="schedrecurring" id="schedrecurring_no" value="" disabled="disabled" checked="checked"/>
+															<label for="schedrecurring_no"><?= htmlspecialchars(_("No")) ?></label>
+														</div>
+													</div>
+												</div>
+											</div>
+										</div>
+										<div class="row">
+											<div class="col-md-12">
+												<span id="schedrecurring-help" class="help-block fpbx-help-block">
+													<?= htmlspecialchars(_("Check this box to make the restart occur repeatedly at the specified time. By using * for day and/or month, you can make the phone reboot daily, monthly, or yearly.")) ?>
+												</span>
+											</div>
+										</div>
+									</div>
+									<!--END Schedule Recurring-->
 								</div>
 								<div role="tabpanel" id="restartlist" class="tab-pane">
 									<table id="pending_restart_grid"

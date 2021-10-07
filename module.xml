@@ -1,12 +1,13 @@
 <module>
 	<rawname>restart</rawname>
 	<name>Bulk Phone Restart</name>
-	<version>15.0.1</version>
+	<version>15.1</version>
 	<publisher>RadiusOne</publisher>
 	<license>GPLv3+</license>
 	<licenselink>http://www.gnu.org/licenses/gpl-3.0.txt</licenselink>
 	<category>Admin</category>
 	<changelog>
+		*15.1* Improve scheduling, add day/month and recurring options
 		*15.0.1* Fix "select all" button submitting form
 		*15.0* Add scheduled restarts
 		*13.0.7* Fixing FREEPBX-18131 Removing reboot by force option from yealink while sending sip notify to yealink phone. 

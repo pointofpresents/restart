@@ -56,7 +56,7 @@ class Phonerestart extends Command
         $extensions = $input->getOption("extension");
 
         if ($jobname) {
-            if (!preg_match("/scheduled_reboot_[0-9]{4}/", $jobname)) {
+            if (!preg_match("/^(?:scheduled|recurring)_reboot_[0-9_-]+/", $jobname)) {
                 $this->showHelp("Invalid job name specified");
             }
             $this->jobname = $jobname;

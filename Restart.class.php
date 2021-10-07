@@ -1,13 +1,13 @@
 <?php
 namespace FreePBX\modules;
 
-use \BMO;
-use \FreePBX;
-use \DateTime;
-use \Exception;
-use \FreePBX\FreePBX_Helpers as Helper;
-use \Symfony\Component\Console\Output\OutputInterface;
-use \FreePBX\modules\Restart\Job;
+use BMO;
+use DateTime;
+use Exception;
+use FreePBX;
+use FreePBX\FreePBX_Helpers as Helper;
+use FreePBX\modules\Restart\Job;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class Restart extends Helper implements BMO
 {
@@ -120,60 +120,115 @@ class Restart extends Helper implements BMO
                     $job->getAll(),
                     function($v) { return $v["modulename"] === self::MODULE_NAME; }
                 );
-                foreach ($jobs as $job) {
-                    $sched = explode(" ", $job["schedule"]);
-                    $time = "$sched[1]:$sched[0]";
-                    $jobname = $job["jobname"];
-                    if ($devices = $this->getConfig($jobname)) {
-                        $devices = implode(", ", $devices);
-                    } else {
-                        $devices = _("None (invalid entry)");
-                    }
-                    $return[] = array(
-                        "jobname" => $jobname,
-                        "time" => $time,
-                        "devices" => $devices,
-                    );
-                }
             } catch (Exception $e) {
-                // assume exception means no Job class
+                // assume exception means no Job class, create an array that looks like v15
                 $conf = FreePBX::Config();
                 $user = $conf->get("AMPASTERISKWEBUSER");
                 $cron = FreePBX::Cron($user);
                 $jobs = array_filter(
                     $cron->getAll(),
-                    function($v) { return strpos($v, "scheduled_reboot_") !== false; }
+                    function($v) { return preg_match("/(?:scheduled|recurring)_reboot_/", $v); }
                 );
+                $newjobs = array();
                 foreach ($jobs as $job) {
                     $cron = explode(" ", $job);
-                    $time = "$cron[1]:$cron[0]";
-                    $jobname = str_replace("--jobname=", "", $cron[7]);
-                    $devices = _("None (invalid entry)");
-                    if ($devices = $this->getConfig($jobname)) {
-                        $devices = implode(", ", $devices);
-                    }
-                    $return[] = array(
-                        "jobname" => $jobname,
-                        "time" => $time,
-                        "devices" => $devices,
+                    $newjobs[] = array(
+                        "schedule" => implode(" ", array_slice($cron, 0, 5)),
+                        "jobname" => str_replace("--jobname=", "", $cron[7]),
                     );
                 }
+                $jobs = $newjobs;
+            }
+            $now = new Datetime();
+            foreach ($jobs as $job) {
+                $sched = explode(" ", $job["schedule"]);
+                $time = $job["schedule"];
+                $minute = $sched[0];
+                $hour = $sched[1];
+                $day = $sched[2];
+                $month = $sched[3];
+                $jobname = $job["jobname"];
+                $recurring = (strpos($jobname, "recurring") === 0);
+                if ($recurring) {
+                    if ("$day$month" === "**") {
+                        $dt = Datetime::createFromFormat("Hi", "$hour$minute");
+                        $time = sprintf(_("Every day at %s"), $dt->format(_("g:i a")));
+                    } elseif ($month === "*") {
+                        $dt = Datetime::createFromFormat("Hi j", "$hour$minute $day");
+                        $time = sprintf(
+                            _("%s of every month at %s"),
+                            $dt->format(_("jS")),
+                            $dt->format(_("g:i a"))
+                        );
+                    } elseif ($day === "*") {
+                        $dt = Datetime::createFromFormat("Hi n", "$hour$minute $month");
+                        $time = sprintf(
+                            _("Every day in %s at %s"),
+                            $dt->format(_("F")),
+                            $dt->format(_("g:i a"))
+                        );
+                    } else {
+                        $dt = Datetime::createFromFormat("Hi n j", "$hour$minute $month $day");
+                        $time = sprintf(
+                            _("Every year on %s at %s"),
+                            $dt->format(_("j M")),
+                            $dt->format(_("g:i a"))
+                        );
+                    }
+                } elseif ("$day$month" === "**") {
+                    $dt = Datetime::createFromFormat("Hi", "$hour$minute");
+                    $time = sprintf(
+                        _("%s at %s"),
+                        $dt > $now ? _("Tomorrow") : _("Today"),
+                        $dt->format(_("g:i a"))
+                    );
+                } elseif ($month === "*") {
+                    // check if it's this month or next
+                    $dt = Datetime::createFromFormat("Hi j", "$hour$minute $day");
+                    if ($now > $dt) {
+                        $dt->modify("+1 month");
+                    }
+                    $time = sprintf(
+                        "%s at %s",
+                        $dt->format("md") < $now->format("md")
+                            ? $dt->modify("+1 year")->format(_("j M Y"))
+                            : $dt->format(_("j M")),
+                        $dt->format(_("g:i a"))
+                    );
+                } elseif ($day === "*") {
+                    $dt = Datetime::createFromFormat("n j Hi", "$month 1 $hour$minute");
+                    $time = sprintf(
+                        "%s at %s",
+                        $dt->format("md") < $now->format("md")
+                            ? $dt->modify("+1 year")->format(_("j M Y"))
+                            : $dt->format(_("j M")),
+                        $dt->format(_("g:i a"))
+                    );
+                } else {
+                    $dt = Datetime::createFromFormat("n j Hi", "$month $day $hour$minute");
+                    $time = sprintf(
+                        "%s at %s",
+                        $dt->format("md") < $now->format("md")
+                            ? $dt->modify("+1 year")->format(_("j M Y"))
+                            : $dt->format(_("j M")),
+                        $dt->format(_("g:i a"))
+                    );
+                }
+                if ($devices = $this->getConfig($jobname)) {
+                    $devices = implode(", ", $devices);
+                } else {
+                    $devices = _("None (invalid entry)");
+                }
+                $return[] = array(
+                    "jobname" => $jobname,
+                    "time" => $time,
+                    "devices" => $devices,
+                );
             }
             return $return;
         } elseif ($command === "deleteJob") {
             $jobname = $_GET["itemid"];
-            $this->delConfig($jobname);
-            try {
-                $job = FreePBX::Job();
-                $result = $job->remove(self::MODULE_NAME, $jobname);
-            } catch (Exception $e) {
-                // assume exception means no Job class
-                $conf = FreePBX::Config();
-                $user = $conf->get("AMPASTERISKWEBUSER");
-                $cron = FreePBX::Cron($user);
-                $result = $cron->removeAll("--jobname=$jobname");
-            }
-            return $result;
+            return$this->deleteJob($jobname);
         }
         return ["status"=>false, "message"=>_("Unknown command")];
     }
@@ -202,11 +257,29 @@ class Restart extends Helper implements BMO
                 }
             } else {
                 $schedtime = $_POST["schedtime"];
-                FreePBX::Restart()->scheduleRestart($restartlist, $schedtime);
-                $txtinfo = sprintf(
-                    '<div class="well well-info">%s</div>',
-                    htmlspecialchars(_("Restart requests scheduled!"))
-                );
+                $schedmonth = $_POST["schedmonth"];
+                $schedday = $_POST["schedday"];
+                $recurring = !empty($_POST["schedrecurring"]);
+                if ($schedmonth === "*") {
+                    $format = ($schedday === "*" ? "*-* H:i" : "*-d H:i");
+                } elseif ($schedday === "*") {
+                    $format = "m-* H:i";
+                } else {
+                    $format = "m-d H:i";
+                }
+                $date = \Datetime::createFromFormat($format, "$schedmonth-$schedday $schedtime");
+                if ($date) {
+                    FreePBX::Restart()->scheduleRestart($restartlist, $schedtime, $schedmonth, $schedday, $recurring);
+                    $txtinfo = sprintf(
+                        '<div class="well well-info">%s</div>',
+                        htmlspecialchars(_("Restart requests scheduled!"))
+                    );
+                } else {
+                    $txtinfo = sprintf(
+                        '<div class="well well-error">%s</div>',
+                        htmlspecialchars(_("An invalid schedule was provided."))
+                    );
+                }
             }
         }
 
@@ -223,27 +296,85 @@ class Restart extends Helper implements BMO
 
     public function runJobs(OutputInterface $output, $jobname = "")
     {
-        if ($jobname === "") {
-            $time = (new DateTime)->format("Hi");
+        if (strpos($jobname, "scheduled_reboot_") === 0) {
+            $this->runJob($output, $jobname, true);
+        } elseif (strpos($jobname, "recurring_reboot_") === 0) {
+            $this->runJob($output, $jobname);
+        } elseif ($jobname === "") {
+            $d = new Datetime();
+            $time = $d->format("n_j_Hi");
+            // run one-time job based on date/time
             $jobname = "scheduled_reboot_$time";
+            $this->runJob($output, $jobname, true);
+
+            $time = $d->format("*_*_Hi");
+            // run one-time job based on just time
+            $jobname = "scheduled_reboot_$time";
+            $this->runJob($output, $jobname, true);
+
+            $jobs = $this->getAll();
+            foreach ($jobs as $name => $job) {
+                if (strpos($name, "recurring_reboot_") !== 0) {
+                    continue;
+                }
+                // check for daily jobs
+                $time = $d->format("*_*_Hi");
+                if (strpos($name, "recurring_reboot_$time_") === 0) {
+                    $this->runJob($output, $name);
+                    continue;
+                }
+                // check for monthly jobs
+                $time = $d->format("*_j_Hi");
+                if (strpos($name, "recurring_reboot_$time_") === 0) {
+                    $this->runJob($output, $name);
+                    continue;
+                }
+                // check for annual jobs
+                $time = $d->format("n_j_Hi");
+                if (strpos($name, "recurring_reboot_$time_") === 0) {
+                    $this->runJob($output, $name);
+                    continue;
+                }
+                // check for fucked up jobs (every day in a month???)
+                $time = $d->format("n_*_Hi");
+                if (strpos($name, "recurring_reboot_$time_") === 0) {
+                    $this->runJob($output, $name);
+                    continue;
+                }
+            }
         }
+    }
+
+    private function runJob(OutputInterface $output, $jobname, $delete = false)
+    {
         if ($devicelist = $this->getConfig($jobname)) {
             foreach ($devicelist as $device) {
                 $output->writeln(sprintf(_("Restart request sent for %s"), $device));
                 self::restartDevice($device);
             }
         }
+        if ($delete !== true) {
+            // keep recurring jobs
+            return;
+        }
+        $this->deleteJob($jobname);
+    }
+
+    private function deleteJob($jobname)
+    {
         $this->delConfig($jobname);
         try {
             $job = FreePBX::Job();
-            $job->remove(self::MODULE_NAME, $jobname);
+            $result = $job->remove(self::MODULE_NAME, $jobname);
         } catch (Exception $e) {
             // assume exception means no Job class
             $conf = FreePBX::Config();
             $user = $conf->get("AMPASTERISKWEBUSER");
             $cron = FreePBX::Cron($user);
-            $cron->removeAll("--jobname=$jobname");
+            $result = $cron->removeAll("--jobname=$jobname");
         }
+
+        return $result;
     }
 
     public static function restartDevice($device)
@@ -264,11 +395,24 @@ class Restart extends Helper implements BMO
         return false;
     }
 
-    public function scheduleRestart($device, $schedtime)
+    public function scheduleRestart($device, $schedtime, $schedmonth, $schedday, $recurring = false)
     {
         list($hour, $min) = explode(":", $schedtime);
-        $jobname = "scheduled_reboot_$hour$min";
-        $schedule = "$min $hour * * *";
+        if (class_exists("\Ramsey\Uuid\Uuid")) {
+            $uuid = \Ramsey\Uuid\Uuid::uuid4();
+        } elseif (class_exists("\Rhumsaa\Uuid\Uuid")) {
+            $uuid = \Rhumsaa\Uuid\Uuid::uuid4();
+        }
+        $jobname = sprintf(
+            "%s_reboot_%s_%s_%s%s_%s",
+            ($recurring ? "recurring" : "scheduled"),
+            $schedmonth,
+            $schedday,
+            $hour,
+            $min,
+            $uuid
+        );
+        $schedule = "$min $hour $schedday $schedmonth *";
         try {
             $job = FreePBX::Job();
             $job->remove(self::MODULE_NAME, $jobname);
@@ -289,6 +433,8 @@ class Restart extends Helper implements BMO
                 "command" => "$bindir/fwconsole phonerestart --jobname=$jobname",
                 "minute" => $min,
                 "hour" => $hour,
+                "dom" => $schedday,
+                "month" => $schedmonth,
             ));
         }
         $this->setConfig($jobname, $device);
