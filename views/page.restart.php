@@ -42,7 +42,7 @@
 														</div>
 														<div class="col-md-9">
 															<div class="input-group">
-																<select class="form-control" id="xtnlist" multiple="multiple" name="restartlist[]" size="8">
+																<select class="form-control" id="xtnlist" multiple="multiple" name="restartlist[]" size="8" required="required">
 <?php foreach ($device_list as $device): ?>
 																	<option value="<?= htmlspecialchars($device["id"]) ?>">
 																		<?= htmlspecialchars("$device[id] - $device[description] - $device[ua] Device") ?>
@@ -239,8 +239,11 @@
 															<label class="control-label" for="schedrecurring"><?= htmlspecialchars(_("Recurring Reboot?")) ?></label>
 															<i class="fa fa-question-circle fpbx-help-icon" data-for="schedrecurring"></i>
 														</div>
-														<div class="col-md-9">
-															<input type="checkbox" class="form-control scheduler" name="schedrecurring" id="schedrecurring"/>
+														<div class="col-md-9 radioset">
+															<input type="radio" class="scheduler" name="schedrecurring" id="schedrecurring_yes" value="yes" disabled="disabled"/>
+															<label for="schedrecurring_yes"><?= htmlspecialchars(_("Yes")) ?></label>
+															<input type="radio" class="scheduler" name="schedrecurring" id="schedrecurring_no" value="" disabled="disabled" checked="checked"/>
+															<label for="schedrecurring_no"><?= htmlspecialchars(_("No")) ?></label>
 														</div>
 													</div>
 												</div>
