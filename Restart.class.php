@@ -120,94 +120,8 @@ class Restart extends Helper implements BMO
                     $job->getAll(),
                     function($v) { return $v["modulename"] === self::MODULE_NAME; }
                 );
-                $now = new Datetime();
-                foreach ($jobs as $job) {
-                    $sched = explode(" ", $job["schedule"]);
-                    $time = $job["schedule"];
-                    $minute = $sched[0];
-                    $hour = $sched[1];
-                    $day = $sched[2];
-                    $month = $sched[3];
-                    $jobname = $job["jobname"];
-                    $recurring = (strpos($jobname, "recurring") === 0);
-                    if ($recurring) {
-                        if ("$day$month" === "**") {
-                            $dt = Datetime::createFromFormat("Hi", "$hour$minute");
-                            $time = sprintf(_("Every day at %s"), $dt->format(_("g:i a")));
-                        } elseif ($month === "*") {
-                            $dt = Datetime::createFromFormat("Hi j", "$hour$minute $day");
-                            $time = sprintf(
-                                _("%s of every month at %s"),
-                                $dt->format(_("jS")),
-                                $dt->format(_("g:i a"))
-                            );
-                        } elseif ($day === "*") {
-                            $dt = Datetime::createFromFormat("Hi n", "$hour$minute $month");
-                            $time = sprintf(
-                                _("Every day in %s at %s"),
-                                $dt->format(_("F")),
-                                $dt->format(_("g:i a"))
-                            );
-                        } else {
-                            $dt = Datetime::createFromFormat("Hi n j", "$hour$minute $month $day");
-                            $time = sprintf(
-                                _("Every year on %s at %s"),
-                                $dt->format(_("j M")),
-                                $dt->format(_("g:i a"))
-                            );
-                        }
-                    } elseif ("$day$month" === "**") {
-                        $dt = Datetime::createFromFormat("Hi", "$hour$minute");
-                        $time = sprintf(
-                            _("%s at %s"),
-                            $dt > $now ? _("Tomorrow") : _("Today"),
-                            $dt->format(_("g:i a"))
-                        );
-                    } elseif ($month === "*") {
-                        // check if it's this month or next
-                        $dt = Datetime::createFromFormat("Hi j", "$hour$minute $day");
-                        if ($now > $dt) {
-                            $dt->modify("+1 month");
-                        }
-                        $time = sprintf(
-                            "%s at %s",
-                            $dt->format("md") < $now->format("md")
-                                ? $dt->modify("+1 year")->format(_("j M Y"))
-                                : $dt->format(_("j M")),
-                            $dt->format(_("g:i a"))
-                        );
-                    } elseif ($day === "*") {
-                        $dt = Datetime::createFromFormat("n j Hi", "$month 1 $hour$minute");
-                        $time = sprintf(
-                            "%s at %s",
-                            $dt->format("md") < $now->format("md")
-                                ? $dt->modify("+1 year")->format(_("j M Y"))
-                                : $dt->format(_("j M")),
-                            $dt->format(_("g:i a"))
-                        );
-                    } else {
-                        $dt = Datetime::createFromFormat("n j", "$month $day");
-                        $time = sprintf(
-                            "%s at %s",
-                            $dt->format("md") < $now->format("md")
-                                ? $dt->modify("+1 year")->format(_("j M Y"))
-                                : $dt->format(_("j M")),
-                            $dt->format(_("g:i a"))
-                        );
-                    }
-                    if ($devices = $this->getConfig($jobname)) {
-                        $devices = implode(", ", $devices);
-                    } else {
-                        $devices = _("None (invalid entry)");
-                    }
-                    $return[] = array(
-                        "jobname" => $jobname,
-                        "time" => $time,
-                        "devices" => $devices,
-                    );
-                }
             } catch (Exception $e) {
-                // assume exception means no Job class
+                // assume exception means no Job class, create an array that looks like v15
                 $conf = FreePBX::Config();
                 $user = $conf->get("AMPASTERISKWEBUSER");
                 $cron = FreePBX::Cron($user);
@@ -215,23 +129,101 @@ class Restart extends Helper implements BMO
                     $cron->getAll(),
                     function($v) { return preg_match("/(?:scheduled|recurring)_reboot_/", $v); }
                 );
+                $newjobs = array();
                 foreach ($jobs as $job) {
                     $cron = explode(" ", $job);
-                    $time = "$cron[1]:$cron[0]";
-                    $day = $cron[2];
-                    $month = $cron[3];
-                    $jobname = str_replace("--jobname=", "", $cron[7]);
-                    $recurring = (strpos($jobname, "recurring") === 0);
-                    $devices = _("None (invalid entry)");
-                    if ($devices = $this->getConfig($jobname)) {
-                        $devices = implode(", ", $devices);
-                    }
-                    $return[] = array(
-                        "jobname" => $jobname,
-                        "time" => $time,
-                        "devices" => $devices,
+                    $newjobs[] = array(
+                        "schedule" => implode(" ", array_slice($cron, 0, 5)),
+                        "jobname" => str_replace("--jobname=", "", $cron[7]),
                     );
                 }
+                $jobs = $newjobs;
+            }
+            $now = new Datetime();
+            foreach ($jobs as $job) {
+                $sched = explode(" ", $job["schedule"]);
+                $time = $job["schedule"];
+                $minute = $sched[0];
+                $hour = $sched[1];
+                $day = $sched[2];
+                $month = $sched[3];
+                $jobname = $job["jobname"];
+                $recurring = (strpos($jobname, "recurring") === 0);
+                if ($recurring) {
+                    if ("$day$month" === "**") {
+                        $dt = Datetime::createFromFormat("Hi", "$hour$minute");
+                        $time = sprintf(_("Every day at %s"), $dt->format(_("g:i a")));
+                    } elseif ($month === "*") {
+                        $dt = Datetime::createFromFormat("Hi j", "$hour$minute $day");
+                        $time = sprintf(
+                            _("%s of every month at %s"),
+                            $dt->format(_("jS")),
+                            $dt->format(_("g:i a"))
+                        );
+                    } elseif ($day === "*") {
+                        $dt = Datetime::createFromFormat("Hi n", "$hour$minute $month");
+                        $time = sprintf(
+                            _("Every day in %s at %s"),
+                            $dt->format(_("F")),
+                            $dt->format(_("g:i a"))
+                        );
+                    } else {
+                        $dt = Datetime::createFromFormat("Hi n j", "$hour$minute $month $day");
+                        $time = sprintf(
+                            _("Every year on %s at %s"),
+                            $dt->format(_("j M")),
+                            $dt->format(_("g:i a"))
+                        );
+                    }
+                } elseif ("$day$month" === "**") {
+                    $dt = Datetime::createFromFormat("Hi", "$hour$minute");
+                    $time = sprintf(
+                        _("%s at %s"),
+                        $dt > $now ? _("Tomorrow") : _("Today"),
+                        $dt->format(_("g:i a"))
+                    );
+                } elseif ($month === "*") {
+                    // check if it's this month or next
+                    $dt = Datetime::createFromFormat("Hi j", "$hour$minute $day");
+                    if ($now > $dt) {
+                        $dt->modify("+1 month");
+                    }
+                    $time = sprintf(
+                        "%s at %s",
+                        $dt->format("md") < $now->format("md")
+                            ? $dt->modify("+1 year")->format(_("j M Y"))
+                            : $dt->format(_("j M")),
+                        $dt->format(_("g:i a"))
+                    );
+                } elseif ($day === "*") {
+                    $dt = Datetime::createFromFormat("n j Hi", "$month 1 $hour$minute");
+                    $time = sprintf(
+                        "%s at %s",
+                        $dt->format("md") < $now->format("md")
+                            ? $dt->modify("+1 year")->format(_("j M Y"))
+                            : $dt->format(_("j M")),
+                        $dt->format(_("g:i a"))
+                    );
+                } else {
+                    $dt = Datetime::createFromFormat("n j", "$month $day");
+                    $time = sprintf(
+                        "%s at %s",
+                        $dt->format("md") < $now->format("md")
+                            ? $dt->modify("+1 year")->format(_("j M Y"))
+                            : $dt->format(_("j M")),
+                        $dt->format(_("g:i a"))
+                    );
+                }
+                if ($devices = $this->getConfig($jobname)) {
+                    $devices = implode(", ", $devices);
+                } else {
+                    $devices = _("None (invalid entry)");
+                }
+                $return[] = array(
+                    "jobname" => $jobname,
+                    "time" => $time,
+                    "devices" => $devices,
+                );
             }
             return $return;
         } elseif ($command === "deleteJob") {
