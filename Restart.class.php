@@ -7,7 +7,6 @@ use Exception;
 use FreePBX;
 use FreePBX\FreePBX_Helpers as Helper;
 use FreePBX\modules\Restart\Job;
-use Ramsey\Uuid\Uuid;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Restart extends Helper implements BMO
@@ -407,10 +406,20 @@ class Restart extends Helper implements BMO
     public function scheduleRestart($device, $schedtime, $schedmonth, $schedday, $recurring = false)
     {
         list($hour, $min) = explode(":", $schedtime);
-        $jobname = "scheduled_reboot_${schedmonth}_${schedday}_$hour$min";
-        if ($recurring) {
-            $jobname = "recurring_reboot_${schedmonth}_${schedday}_$hour$min_" . Uuid::uuid4();
+        if (class_exists("\Ramsey\Uuid\Uuid")) {
+            $uuid = \Ramsey\Uuid\Uuid::uuid4();
+        } elseif (class_exists("\Rhumsaa\Uuid\Uuid")) {
+            $uuid = \Rhumsaa\Uuid\Uuid::uuid4();
         }
+        $jobname = sprintf(
+            "%s_reboot_%s_%s_%s%s_%s",
+            ($recurring ? "recurring" : "scheduled"),
+            $schedmonth,
+            $schedday,
+            $hour,
+            $minute,
+            $uuid
+        );
         $schedule = "$min $hour $schedday $schedmonth *";
         try {
             $job = FreePBX::Job();
