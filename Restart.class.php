@@ -205,7 +205,7 @@ class Restart extends Helper implements BMO
                         $dt->format(_("g:i a"))
                     );
                 } else {
-                    $dt = Datetime::createFromFormat("n j", "$month $day");
+                    $dt = Datetime::createFromFormat("n j Hi", "$month $day $hour$minute");
                     $time = sprintf(
                         "%s at %s",
                         $dt->format("md") < $now->format("md")
@@ -409,7 +409,7 @@ class Restart extends Helper implements BMO
             $schedmonth,
             $schedday,
             $hour,
-            $minute,
+            $min,
             $uuid
         );
         $schedule = "$min $hour $schedday $schedmonth *";
@@ -433,7 +433,7 @@ class Restart extends Helper implements BMO
                 "command" => "$bindir/fwconsole phonerestart --jobname=$jobname",
                 "minute" => $min,
                 "hour" => $hour,
-                "day" => $schedday,
+                "dom" => $schedday,
                 "month" => $schedmonth,
             ));
         }
