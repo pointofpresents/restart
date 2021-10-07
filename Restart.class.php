@@ -121,13 +121,81 @@ class Restart extends Helper implements BMO
                     $job->getAll(),
                     function($v) { return $v["modulename"] === self::MODULE_NAME; }
                 );
+                $now = new Datetime();
                 foreach ($jobs as $job) {
                     $sched = explode(" ", $job["schedule"]);
-                    $time = "$sched[1]:$sched[0]";
+                    $time = $job["schedule"];
+                    $minute = $sched[0];
+                    $hour = $sched[1];
                     $day = $sched[2];
                     $month = $sched[3];
                     $jobname = $job["jobname"];
                     $recurring = (strpos($jobname, "recurring") === 0);
+                    if ($recurring) {
+                        if ("$day$month" === "**") {
+                            $dt = Datetime::createFromFormat("Hi", "$hour$minute");
+                            $time = sprintf(_("Every day at %s"), $dt->format(_("g:i a")));
+                        } elseif ($month === "*") {
+                            $dt = Datetime::createFromFormat("Hi j", "$hour$minute $day");
+                            $time = sprintf(
+                                _("%s of every month at %s"),
+                                $dt->format(_("jS")),
+                                $dt->format(_("g:i a"))
+                            );
+                        } elseif ($day === "*") {
+                            $dt = Datetime::createFromFormat("Hi n", "$hour$minute $month");
+                            $time = sprintf(
+                                _("Every day in %s at %s"),
+                                $dt->format(_("F")),
+                                $dt->format(_("g:i a"))
+                            );
+                        } else {
+                            $dt = Datetime::createFromFormat("Hi n j", "$hour$minute $month $day");
+                            $time = sprintf(
+                                _("Every year on %s at %s"),
+                                $dt->format(_("j M")),
+                                $dt->format(_("g:i a"))
+                            );
+                        }
+                    } elseif ("$day$month" === "**") {
+                        $dt = Datetime::createFromFormat("Hi", "$hour$minute");
+                        $time = sprintf(
+                            _("%s at %s"),
+                            $dt > $now ? _("Tomorrow") : _("Today"),
+                            $dt->format(_("g:i a"))
+                        );
+                    } elseif ($month === "*") {
+                        // check if it's this month or next
+                        $dt = Datetime::createFromFormat("Hi j", "$hour$minute $day");
+                        if ($now > $dt) {
+                            $dt->modify("+1 month");
+                        }
+                        $time = sprintf(
+                            "%s at %s",
+                            $dt->format("md") < $now->format("md")
+                                ? $dt->modify("+1 year")->format(_("j M Y"))
+                                : $dt->format(_("j M")),
+                            $dt->format(_("g:i a"))
+                        );
+                    } elseif ($day === "*") {
+                        $dt = Datetime::createFromFormat("n j Hi", "$month 1 $hour$minute");
+                        $time = sprintf(
+                            "%s at %s",
+                            $dt->format("md") < $now->format("md")
+                                ? $dt->modify("+1 year")->format(_("j M Y"))
+                                : $dt->format(_("j M")),
+                            $dt->format(_("g:i a"))
+                        );
+                    } else {
+                        $dt = Datetime::createFromFormat("n j", "$month $day");
+                        $time = sprintf(
+                            "%s at %s",
+                            $dt->format("md") < $now->format("md")
+                                ? $dt->modify("+1 year")->format(_("j M Y"))
+                                : $dt->format(_("j M")),
+                            $dt->format(_("g:i a"))
+                        );
+                    }
                     if ($devices = $this->getConfig($jobname)) {
                         $devices = implode(", ", $devices);
                     } else {
@@ -136,10 +204,7 @@ class Restart extends Helper implements BMO
                     $return[] = array(
                         "jobname" => $jobname,
                         "time" => $time,
-                        "day" => $day,
-                        "month" => $month,
                         "devices" => $devices,
-                        "recurring" => $recurring,
                     );
                 }
             } catch (Exception $e) {
@@ -149,7 +214,7 @@ class Restart extends Helper implements BMO
                 $cron = FreePBX::Cron($user);
                 $jobs = array_filter(
                     $cron->getAll(),
-                    function($v) { return preg_match("/(?:scheduled|recurring)_reboot_", $v); }
+                    function($v) { return preg_match("/(?:scheduled|recurring)_reboot_/", $v); }
                 );
                 foreach ($jobs as $job) {
                     $cron = explode(" ", $job);
@@ -165,10 +230,7 @@ class Restart extends Helper implements BMO
                     $return[] = array(
                         "jobname" => $jobname,
                         "time" => $time,
-                        "day" => $day,
-                        "month" => $month,
                         "devices" => $devices,
-                        "recurring" => $recurring,
                     );
                 }
             }
@@ -206,7 +268,7 @@ class Restart extends Helper implements BMO
                 $schedtime = $_POST["schedtime"];
                 $schedmonth = $_POST["schedmonth"];
                 $schedday = $_POST["schedday"];
-                $recurring = isset($_POST["schedrecurring"]);
+                $recurring = !empty($_POST["schedrecurring"]);
                 if ($schedmonth === "*") {
                     $format = ($schedday === "*" ? "*-* H:i" : "*-d H:i");
                 } elseif ($schedday === "*") {
