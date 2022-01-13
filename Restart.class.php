@@ -13,6 +13,15 @@ class Restart extends Helper implements BMO
 {
     const MODULE_NAME = "restart";
 
+    private static $messages = array(
+        "aastra"      => "aastra-check-cfg",
+        "cisco"       => "cisco-check-cfg",
+        "grandstream" => "grandstream-check-cfg",
+        "poly"        => "polycom-check-cfg",
+        "snom"        => "reboot-snom",
+        "yealink"     => "reboot-yealink",
+    );
+
     public function __construct($freepbx = null)
     {
         if ($freepbx === null) {
@@ -379,17 +388,9 @@ class Restart extends Helper implements BMO
 
     public static function restartDevice($device)
     {
-        $messages = array(
-            "aastra"      => "aastra-check-cfg",
-            "cisco"       => "cisco-check-cfg",
-            "grandstream" => "grandstream-check-cfg",
-            "polycom"     => "polycom-check-cfg",
-            "snom"        => "reboot-snom",
-            "yealink"     => "reboot-yealink",
-        );
         $ua = self::getUserAgent($device);
         if ($ua) {
-            self::sipNotify($messages[$ua], $device);
+            self::sipNotify(self::$messages[$ua], $device);
             return true;
         }
         return false;
@@ -448,8 +449,10 @@ class Restart extends Helper implements BMO
         $response = implode("\n", $response);
         if (preg_match("/useragent *: *(.*?)\n/i", $response, $matches) && count($matches) > 1) {
             $ua = $matches[1];
-            $agents = array("aastra", "cisco", "grandstream", "polycom", "snom", "yealink");
-            $result = array_filter($agents, function($v) use($ua){ return stristr($ua, $v); });
+            $agents = array_keys(self::$messages);
+            $result = array_filter($agents, function ($v) use ($ua){
+                return preg_match("/\\b$v/i", $ua);
+            });
             return array_pop($result);
         }
         return null;
