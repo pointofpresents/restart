@@ -81,7 +81,7 @@ class Restart extends Helper implements BMO
                 "reboot-yealink"         => array("Event" => "check-sync\\;reboot=false"),
                 "sipura-check-cfg"       => array("Event" => "resync"),
                 "spa-reboot"             => array("Event" => "reboot"),
-            )
+            ),
         );
         return $conf;
     }
@@ -443,17 +443,37 @@ class Restart extends Helper implements BMO
 
     public static function getUserAgent($device)
     {
+        $driver = FreePBX::Config()->get('ASTSIPDRIVER');
         $astman = FreePBX::astman();
-        $command = sprintf("sip show peer %s", $device);
-        $response = $astman->Command($command);
-        $response = implode("\n", $response);
-        if (preg_match("/useragent *: *(.*?)\n/i", $response, $matches) && count($matches) > 1) {
-            $ua = $matches[1];
-            $agents = array_keys(self::$messages);
-            $result = array_filter($agents, function ($v) use ($ua){
-                return preg_match("/\\b$v/i", $ua);
-            });
-            return array_pop($result);
+        $agents = array_keys(self::$messages);
+
+        if ($driver === "chan_sip" || $driver === "both") {
+            $command = sprintf("sip show peer %s", $device);
+            $response = $astman->command($command);
+            $response = implode("\n", $response);
+            if (preg_match("/useragent *: *(.*?)\n/i", $response, $matches) && count($matches) > 1) {
+                $ua = $matches[1];
+                $result = array_filter($agents, function ($v) use ($ua){
+                    return preg_match("/\\b$v/i", $ua);
+                });
+                return array_pop($result);
+            }
+        }
+        if ($driver === "chan_pjsip" || $driver === "both") {
+            // can't do a wildcard search through the cache
+            $astman->useCaching=false;
+            $command = sprintf("registrar/contact/%d%%", $device);
+            $responses = $astman->database_show($command);
+            foreach ($responses as $contact=>$data) {
+                $data = json_decode($data, true);
+                if (!empty($data["user_agent"])) {
+                    $ua = $data["user_agent"];
+                    $result = array_filter($agents, function ($v) use ($ua){
+                        return preg_match("/\\b$v/i", $ua);
+                    });
+                    return array_pop($result);
+                }
+            }
         }
         return null;
     }
@@ -461,9 +481,14 @@ class Restart extends Helper implements BMO
     private static function sipNotify($event, $device)
     {
         $astman = FreePBX::astman();
-        $command = sprintf("sip notify %s %s", $event, $device);
-        $res = $astman->Command($command);
+        $driver = FreePBX::Config()->get('ASTSIPDRIVER');
+        if ($driver === "chan_sip" || $driver === "both") {
+            $command = sprintf("sip notify %s %s", $event, $device);
+            $res = $astman->command($command);
+        }
+        if ($driver === "chan_pjsip" || $driver === "both") {
+            $command = sprintf("pjsip send notify %s endpoint %s", $event, $device);
+            $res = $astman->command($command);
+        }
     }
-
-
 }
