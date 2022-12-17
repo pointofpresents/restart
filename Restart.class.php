@@ -313,12 +313,12 @@ class Restart extends Helper implements BMO
             $d = new Datetime();
             $time = $d->format("n_j_Hi");
             // run one-time job based on date/time
-            $jobname = "scheduled_reboot_$time";
+            $jobname = "scheduled_reboot_${time}";
             $this->runJob($output, $jobname, true);
 
             $time = $d->format("*_*_Hi");
             // run one-time job based on just time
-            $jobname = "scheduled_reboot_$time";
+            $jobname = "scheduled_reboot_${time}";
             $this->runJob($output, $jobname, true);
 
             $jobs = $this->getAll();
@@ -328,25 +328,25 @@ class Restart extends Helper implements BMO
                 }
                 // check for daily jobs
                 $time = $d->format("*_*_Hi");
-                if (strpos($name, "recurring_reboot_$time_") === 0) {
+                if (strpos($name, "recurring_reboot_${time}_") === 0) {
                     $this->runJob($output, $name);
                     continue;
                 }
                 // check for monthly jobs
                 $time = $d->format("*_j_Hi");
-                if (strpos($name, "recurring_reboot_$time_") === 0) {
+                if (strpos($name, "recurring_reboot_${time}_") === 0) {
                     $this->runJob($output, $name);
                     continue;
                 }
                 // check for annual jobs
                 $time = $d->format("n_j_Hi");
-                if (strpos($name, "recurring_reboot_$time_") === 0) {
+                if (strpos($name, "recurring_reboot_${time}_") === 0) {
                     $this->runJob($output, $name);
                     continue;
                 }
                 // check for fucked up jobs (every day in a month???)
                 $time = $d->format("n_*_Hi");
-                if (strpos($name, "recurring_reboot_$time_") === 0) {
+                if (strpos($name, "recurring_reboot_${time}_") === 0) {
                     $this->runJob($output, $name);
                     continue;
                 }
