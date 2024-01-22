@@ -1,17 +1,19 @@
 <?php
 namespace FreePBX\modules;
 
-use BMO;
 use DateTime;
 use Exception;
 use FreePBX;
 use FreePBX\FreePBX_Helpers as Helper;
 use FreePBX\modules\Restart\Job;
+use FreePBX\BMO;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Restart extends Helper implements BMO
 {
     const MODULE_NAME = "restart";
+
+    private $FreePBX;
 
     private static $messages = array(
         "aastra"      => "aastra-check-cfg",
